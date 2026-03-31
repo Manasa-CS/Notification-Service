@@ -23,7 +23,7 @@ spring:
 
 app:
   kafka:
-    topic: my-topic
+    topic: test-health
   email:
     from: your-mail@gmail.com
     defaultSubject: Notification from Kafka
