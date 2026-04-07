@@ -1,9 +1,7 @@
 package com.manasa.notificationservice;
 
 import com.manasa.notificationservice.config.EmailConfig;
-import com.manasa.notificationservice.dto.EmailNotificationDetails;
 import com.manasa.notificationservice.dto.NotificationEventMessage;
-import com.manasa.notificationservice.dto.NotificationMessageDetails;
 import com.manasa.notificationservice.service.EmailNotificationService;
 import enums.NotificationType;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,8 +34,6 @@ public class NotificationServiceApplication {
 			System.out.println("Default Body: " + emailConfig.getDefaultBody());
 			NotificationEventMessage eventMessage = new NotificationEventMessage();
 			eventMessage.setNotificationType(NotificationType.EMAIL);
-			NotificationMessageDetails emailDetails =new EmailNotificationDetails("test@123", "Test Subject", "This is a test email body.");
-			eventMessage.setNotificationMessageDetails(emailDetails);
 			emailNotificationService.sendNotification(eventMessage);
 		};
 	}

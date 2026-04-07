@@ -6,7 +6,7 @@ spring:
       consumer:
         group-id: email-group
         auto-offset-reset: earliest
-        key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+        key-deserializer: org.springframework.kafka.support.serializer.JacksonJsonDeserializer
         value-deserializer: org.springframework.kafka.support.serializer.JacksonJsonDeserializer
 
   mail:
@@ -23,7 +23,7 @@ spring:
 
 app:
   kafka:
-    topic: test-health
+    topic: notification-topic
   email:
     from: your-mail@gmail.com
     defaultSubject: Notification from Kafka

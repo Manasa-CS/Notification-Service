@@ -1,5 +1,6 @@
 package com.manasa.notificationservice.dto;
 
+import com.fasterxml.jackson.annotation.JsonTypeName;
 import lombok.*;
 
 
@@ -7,7 +8,8 @@ import lombok.*;
 @Getter
 @AllArgsConstructor
 @NoArgsConstructor
-public class EmailNotificationDetails extends NotificationMessageDetails{
+@JsonTypeName("EMAIL")
+public class EmailNotificationEventMessage extends NotificationEventMessage{
     private String recipientEmail;
     private String subject;
     private String body;
