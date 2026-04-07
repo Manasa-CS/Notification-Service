@@ -13,10 +13,11 @@ public class KafkaConsumer {
     private EmailNotificationService emailNotificationService;
 
     @KafkaListener(    topics = "${app.kafka.topic}",groupId = "${spring.application.kafka.consumer.group-id}", properties = {
+            "bootstrap.servers=${spring.application.kafka.bootstrap-servers}",
+            "value.deserializer=${spring.application.kafka.consumer.value-deserializer}",
             "spring.json.value.default.type=com.manasa.notificationservice.dto.NotificationEventMessage",
             "spring.json.trusted.packages=com.manasa.notificationservice.dto",
             "spring.json.use.type.headers=false",
-            "value.deserializer=${spring.application.kafka.consumer.value-deserializer}",
 
     })
     public void consume(NotificationEventMessage message) {

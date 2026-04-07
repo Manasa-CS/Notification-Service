@@ -22,7 +22,7 @@ public class EmailNotificationService implements NotificationService{
             message.setSubject(emailEventMessage.getSubject());
             message.setText(emailEventMessage.getBody());
             System.out.println("Email sent to: " + emailEventMessage.getRecipientEmail() + " with subject: " + emailEventMessage.getSubject());
-            //javaMailSender.send(message);
+            javaMailSender.send(message);
         }
     }
 }
