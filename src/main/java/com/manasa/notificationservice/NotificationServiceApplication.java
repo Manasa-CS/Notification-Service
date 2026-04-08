@@ -12,7 +12,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.kafka.annotation.EnableKafka;
 
 @SpringBootApplication
-@EnableKafka
 public class NotificationServiceApplication {
 
 	@Autowired
