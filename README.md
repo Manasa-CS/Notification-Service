@@ -10,7 +10,7 @@ This project demonstrates **event-driven architecture**, **polymorphic DTO desig
 - Event-driven notification handling using **Apache Kafka**.
 - Supports **Email** notifications with:
   - From, To, Subject, Body, Attachments.
-- Polymorphic **NotificationDetails** DTO:
+- Polymorphic **NotificationEventMessage** DTO:
   - Extendable for SMS, Push, and future channels.
 - **Strategy pattern** to handle multiple notification types.
 - Configurable via **application.yml**:
@@ -19,6 +19,12 @@ This project demonstrates **event-driven architecture**, **polymorphic DTO desig
 - JSON serialization/deserialization using **Jackson**.
 
 ---
+## 🧠 Design Decisions & Patterns
+Strategy Pattern: Used to decouple the Kafka Consumer from the delivery logic. This ensures that adding a new channel (like Slack or WhatsApp) requires zero changes to the consumer code, adhering to the Open/Closed Principle.
+
+Polymorphic JSON Handling: Leveraging Jackson's @JsonTypeInfo and @JsonSubTypes to handle diverse payloads within a single Kafka topic. This demonstrates a "Single Topic, Multiple Event Types" approach, reducing infrastructure overhead.
+
+Virtual Threads (Java 21): Leveraged Java 21 Virtual Threads to handle I/O-bound notification tasks (like SMTP calls), ensuring high throughput without thread-pool exhaustion.
 
 ## 📂 Project Structure
 
@@ -63,22 +69,18 @@ app:
  Email Notification
  {
    "notificationType": "EMAIL",
-   "details": {
-     "from": "no-reply@myapp.com",
-     "to": "user@example.com",
-     "subject": "Welcome!",
-     "body": "Hello User, welcome to our service",
-     "attachments": []
-   }
+   "from": "no-reply@myapp.com",
+   "to": "user@example.com",
+   "subject": "Welcome!",
+   "body": "Hello User, welcome to our service",
+    "attachments": []
  }
 
 SMS Notification
  {
    "notificationType": "SMS",
-   "details": {
-     "phoneNumber": "+1234567890",
-     "message": "Your OTP is 123456"
-   }
+   "phoneNumber": "+1234567890",
+   "message": "Your OTP is 123456"
  }
 
 
@@ -93,7 +95,7 @@ NotificationService automatically routes the event to the correct handler.
 
 
 Extensibility
-Add new notification channels by creating a subclass of NotificationDetails.
+Add new notification channels by creating a subclass of NotificationEventMessage.
 Implement a NotificationHandler service for the new type.
 The strategy pattern automatically routes messages based on NotificationType.
 Polymorphic DTOs (@JsonTypeInfo, @JsonSubTypes) ensure clean JSON mapping.
