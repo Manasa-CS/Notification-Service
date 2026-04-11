@@ -2,7 +2,9 @@ package com.manasa.notificationservice.service;
 
 import com.manasa.notificationservice.dto.EmailNotificationEventMessage;
 import com.manasa.notificationservice.dto.NotificationEventMessage;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.mail.MailAuthenticationException;
 import org.springframework.mail.MailException;
 import org.springframework.mail.MailSendException;
 import org.springframework.mail.SimpleMailMessage;
@@ -11,6 +13,7 @@ import org.springframework.resilience.annotation.Retryable;
 import org.springframework.stereotype.Service;
 
 @Service
+@Slf4j
 public class EmailNotificationService implements NotificationService{
 
     @Autowired
@@ -19,7 +22,7 @@ public class EmailNotificationService implements NotificationService{
     @Override
     @Retryable(value = MailSendException.class, maxRetriesString = "${app.email.retry.max-attempts}", delayString = "${app.email.retry.backoff.delay}")
     public void sendNotification(NotificationEventMessage eventMessage) {
-        System.out.println("Sending email notification to: ");
+        log.debug("Attempting to send email notification for event: {}", eventMessage);
         if(eventMessage instanceof EmailNotificationEventMessage emailEventMessage) {
             SimpleMailMessage message = new SimpleMailMessage();
             message.setTo(emailEventMessage.getRecipientEmail());
@@ -27,9 +30,10 @@ public class EmailNotificationService implements NotificationService{
             message.setText(emailEventMessage.getBody());
             try{
                 javaMailSender.send(message);
-                System.out.println("Email sent to: " + emailEventMessage.getRecipientEmail() + " with subject: " + emailEventMessage.getSubject());
+                log.info("Email sent successfully to: {} with subject: {}", emailEventMessage.getRecipientEmail(), emailEventMessage.getSubject());
             } catch (MailException e) {
-                System.out.println("Failed to send email to: " + emailEventMessage.getRecipientEmail() + " An Exception occured: " + e.getMessage());
+                log.error("Failed to send email to: {} with subject: {}. Error: {}", emailEventMessage.getRecipientEmail(), emailEventMessage.getSubject(), e.getMessage());
+                //throw e;
             }
 
         }

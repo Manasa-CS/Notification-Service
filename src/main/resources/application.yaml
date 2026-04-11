@@ -33,3 +33,10 @@ app:
       backoff:
         delay: 2000
         multiplier: 2.0
+
+logging:
+  level:
+    root: INFO
+    com.manasa.notificationservice: DEBUG
+  file:
+    name: logs/notification-service.log
