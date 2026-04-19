@@ -1,5 +1,6 @@
 package com.manasa.notificationservice.service;
 
+import com.manasa.notificationservice.Exception.MessageSendingException;
 import com.manasa.notificationservice.dto.EmailNotificationEventMessage;
 import com.manasa.notificationservice.dto.NotificationEventMessage;
 import lombok.extern.slf4j.Slf4j;
@@ -34,6 +35,7 @@ public class EmailNotificationService implements NotificationService{
             } catch (MailException e) {
                 log.error("Failed to send email to: {} with subject: {}. Error: {}", emailEventMessage.getRecipientEmail(), emailEventMessage.getSubject(), e.getMessage());
                 //throw e;
+                throw new MessageSendingException(e.getMessage());
             }
 
         }
