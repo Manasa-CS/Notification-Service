@@ -19,10 +19,76 @@ This project demonstrates **event-driven architecture**, **polymorphic DTO desig
 - JSON serialization/deserialization using **Jackson**.
 
 ---
+## System Architecture
+```mermaid
+graph LR
+    %% Define Nodes
+    Source[(Kafka:<br/>notification-topic)]
+    
+    subgraph Spring_Boot_App [Alerting Service]
+        Consumer[Kafka Consumer]
+        Wrapper[NotificationHandler<br/>WithExceptionHandling]
+        Factory{{"Handler Factory<br/>@JsonSubtypes"}}
+        
+        subgraph Logic [Specific Handlers]
+            Email[Email Handler]
+            SMS[SMS Handler <br/><i>Future</i>]
+        end
+
+        JMail[JavaMailSender]
+        GlobalEH[Generic Exception<br/>Handler]
+        Log[[SLF4J Logger]]
+    end
+
+    SMTPServer((External<br/>SMTP Server))
+    ErrorTopic[(Kafka:<br/>error-topic)]
+    DB[(Audit Tables<br/><i>Planned</i>)]
+
+    %% Execution Flow
+    Source --> Consumer
+    Consumer --> Wrapper
+    Wrapper --> Factory
+    Factory --> Email
+    
+    %% Email Specific Flow
+    Email --> JMail
+    JMail --> SMTPServer
+    
+    %% Logging Connections
+    Consumer -.-> Log
+    Wrapper -.-> Log
+    Email -.-> Log
+    GlobalEH -.-> Log
+    
+    %% Exception Catch-and-Return
+    Email -- "Exception" --> Wrapper
+    JMail -- "Connection Failure" --> Wrapper
+    
+    %% Error Routing
+    Wrapper --> GlobalEH
+    GlobalEH --> ErrorTopic
+
+    %% Persistence
+    Email -.-> DB
+    GlobalEH -.-> DB
+
+    %% Styling
+    style Wrapper fill:#e1f5fe,stroke:#01579b
+    style Log fill:#f1f8e9,stroke:#558b2f
+    style JMail fill:#fff3e0,stroke:#ff9800
+    style DB stroke-dasharray: 5 5
+    style SMS stroke-dasharray: 5 5
+
+```
+---
 ## 🧠 Design Decisions & Patterns
 Strategy Pattern: Used to decouple the Kafka Consumer from the delivery logic. This ensures that adding a new channel (like Slack or WhatsApp) requires zero changes to the consumer code, adhering to the Open/Closed Principle.
 
 Polymorphic JSON Handling: Leveraging Jackson's @JsonTypeInfo and @JsonSubTypes to handle diverse payloads within a single Kafka topic. This demonstrates a "Single Topic, Multiple Event Types" approach, reducing infrastructure overhead.
+
+Dead Letter Queue (DLQ): Implemented via the Kafka error-topic.
+
+Centralized Error Handling: Managed by the NotificationHandlerWithExceptionHandling wrapper.
 
 Virtual Threads (Java 21): Leveraged Java 21 Virtual Threads to handle I/O-bound notification tasks (like SMTP calls), ensuring high throughput without thread-pool exhaustion.
 
