@@ -1,176 +1,214 @@
-# Notification Service Microservice
+# Notification Service — Event-Driven Alerting Microservice
 
-A **Spring Boot** microservice that consumes notification events from a **Kafka topic** and sends notifications via multiple channels (Email, SMS, Push).
-This project demonstrates **event-driven architecture**, **polymorphic DTO design**, and **clean, extensible service patterns**.
+A production-style event-driven notification microservice built using Java 21, Spring Boot, and Apache Kafka.
+
+This project demonstrates scalable asynchronous backend processing using Kafka-driven messaging workflows, extensible notification strategies, polymorphic event handling, centralized exception management, and modern Java concurrency patterns.
+
+The service consumes notification events from Kafka topics and dynamically routes them to channel-specific handlers such as Email, with extensibility support for SMS, Push, Slack, and future notification providers.
+
+---
+
+# 🚀 Engineering Highlights
+
+* Event-driven microservice architecture using Apache Kafka
+* Strategy pattern–based notification routing
+* Polymorphic DTO/event processing using Jackson
+* Centralized exception handling & DLQ support
+* Java 21 Virtual Threads for scalable I/O handling
+* Extensible multi-channel notification framework
+* Clean separation of consumer, routing, and delivery layers
+* Configurable environment-driven architecture
 
 ---
 
-## 🔹 Features
+# 🏗️ System Architecture
 
-- Event-driven notification handling using **Apache Kafka**.
-- Supports **Email** notifications with:
-  - From, To, Subject, Body, Attachments.
-- Polymorphic **NotificationEventMessage** DTO:
-  - Extendable for SMS, Push, and future channels.
-- **Strategy pattern** to handle multiple notification types.
-- Configurable via **application.yml**:
-  - Kafka bootstrap servers, topic name, consumer group.
-  - Email defaults and properties.
-- JSON serialization/deserialization using **Jackson**.
-
----
-## System Architecture
 ```mermaid
 graph LR
-    %% Define Nodes
     Source[(Kafka:<br/>notification-topic)]
-    
-    subgraph Spring_Boot_App [Alerting Service]
+
+    subgraph Spring_Boot_App [Notification Service]
         Consumer[Kafka Consumer]
-        Wrapper[NotificationHandler<br/>WithExceptionHandling]
-        Factory{{"Handler Factory<br/>@JsonSubtypes"}}
-        
-        subgraph Logic [Specific Handlers]
+        Wrapper[Notification Handler<br/>With Exception Handling]
+        Factory{{Handler Factory}}
+
+        subgraph Logic [Notification Handlers]
             Email[Email Handler]
             SMS[SMS Handler <br/><i>Future</i>]
         end
 
         JMail[JavaMailSender]
-        GlobalEH[Generic Exception<br/>Handler]
+        GlobalEH[Global Exception Handler]
         Log[[SLF4J Logger]]
     end
 
-    SMTPServer((External<br/>SMTP Server))
+    SMTPServer((External SMTP Server))
     ErrorTopic[(Kafka:<br/>error-topic)]
-    DB[(Audit Tables<br/><i>Planned</i>)]
+    DB[(Audit Storage<br/><i>Planned</i>)]
 
-    %% Execution Flow
     Source --> Consumer
     Consumer --> Wrapper
     Wrapper --> Factory
     Factory --> Email
-    
-    %% Email Specific Flow
+
     Email --> JMail
     JMail --> SMTPServer
-    
-    %% Logging Connections
+
     Consumer -.-> Log
     Wrapper -.-> Log
     Email -.-> Log
     GlobalEH -.-> Log
-    
-    %% Exception Catch-and-Return
+
     Email -- "Exception" --> Wrapper
     JMail -- "Connection Failure" --> Wrapper
-    
-    %% Error Routing
+
     Wrapper --> GlobalEH
     GlobalEH --> ErrorTopic
 
-    %% Persistence
     Email -.-> DB
     GlobalEH -.-> DB
-
-    %% Styling
-    style Wrapper fill:#e1f5fe,stroke:#01579b
-    style Log fill:#f1f8e9,stroke:#558b2f
-    style JMail fill:#fff3e0,stroke:#ff9800
-    style DB stroke-dasharray: 5 5
-    style SMS stroke-dasharray: 5 5
-
 ```
----
-## 🧠 Design Decisions & Patterns
-Strategy Pattern: Used to decouple the Kafka Consumer from the delivery logic. This ensures that adding a new channel (like Slack or WhatsApp) requires zero changes to the consumer code, adhering to the Open/Closed Principle.
-
-Polymorphic JSON Handling: Leveraging Jackson's @JsonTypeInfo and @JsonSubTypes to handle diverse payloads within a single Kafka topic. This demonstrates a "Single Topic, Multiple Event Types" approach, reducing infrastructure overhead.
-
-Dead Letter Queue (DLQ): Implemented via the Kafka error-topic.
-
-Centralized Error Handling: Managed by the NotificationHandlerWithExceptionHandling wrapper.
-
-Virtual Threads (Java 21): Leveraged Java 21 Virtual Threads to handle I/O-bound notification tasks (like SMTP calls), ensuring high throughput without thread-pool exhaustion.
-
-## 📂 Project Structure
-
-
-
 
 ---
 
-## ⚙️ Configuration
+# 🧠 Key Design Decisions
 
-### `application.yml` example
+## Strategy Pattern
+
+Notification delivery is abstracted using the Strategy Pattern to decouple Kafka consumption from channel-specific delivery logic.
+
+This allows new notification channels (Slack, WhatsApp, Push, SMS, etc.) to be added with minimal changes to the existing architecture while maintaining Open/Closed Principle compliance.
+
+---
+
+## Polymorphic Event Processing
+
+Implemented using Jackson `@JsonTypeInfo` and `@JsonSubTypes` to support multiple notification event types through a shared Kafka topic.
+
+This approach enables:
+
+* flexible event evolution,
+* simplified topic management,
+* and scalable event routing.
+
+---
+
+## Centralized Exception Handling
+
+A dedicated exception-handling wrapper manages:
+
+* delivery failures,
+* retry workflows,
+* DLQ routing,
+* and structured logging.
+
+This improves resiliency and operational observability.
+
+---
+
+## Java 21 Virtual Threads
+
+Virtual Threads are used for I/O-heavy notification workflows such as SMTP communication to improve throughput while avoiding traditional thread-pool bottlenecks.
+
+---
+
+# ⚙️ Technology Stack
+
+* Java 21
+* Spring Boot
+* Apache Kafka
+* Spring Kafka
+* JavaMailSender
+* Jackson
+* Gradle
+* SLF4J Logging
+
+---
+
+# ⚙️ Configuration Example
 
 ```yaml
 spring:
   kafka:
     bootstrap-servers: localhost:9092
-    consumer:
-      group-id: notification-group
-      auto-offset-reset: earliest
-      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
-
-  mail:
-    host: smtp.gmail.com
-    port: 587
-    username: your-email@gmail.com
-    password: your-password
-    properties:
-      mail.smtp.auth: true
-      mail.smtp.starttls.enable: true
 
 app:
   kafka:
-    topic: my-topic
-  email:
-    from: no-reply@myapp.com
-    default-subject: Notification
-    retry-attempts: 3
+    topic: notification-topic
+```
 
- ---
- ## Example Notification Event
- Email Notification
- {
-   "notificationType": "EMAIL",
-   "from": "no-reply@myapp.com",
-   "to": "user@example.com",
-   "subject": "Welcome!",
-   "body": "Hello User, welcome to our service",
-    "attachments": []
- }
+---
 
-SMS Notification
- {
-   "notificationType": "SMS",
-   "phoneNumber": "+1234567890",
-   "message": "Your OTP is 123456"
- }
+# 📩 Example Notification Events
 
+## Email Notification
 
-Usage
-Start Kafka on localhost:9092.
-Build the project with Gradle:
+```json
+{
+  "notificationType": "EMAIL",
+  "from": "no-reply@myapp.com",
+  "to": "user@example.com",
+  "subject": "Welcome!",
+  "body": "Hello User, welcome to our service",
+  "attachments": []
+}
+```
+
+---
+
+## SMS Notification
+
+```json
+{
+  "notificationType": "SMS",
+  "phoneNumber": "+1234567890",
+  "message": "Your OTP is 123456"
+}
+```
+
+---
+
+# ▶️ Running the Application
+
+## Start Kafka
+
+```bash
+localhost:9092
+```
+
+## Build the project
+
+```bash
 ./gradlew build
-Run the Spring Boot application:
+```
+
+## Run the application
+
+```bash
 ./gradlew bootRun
-Produce JSON messages to Kafka topic (my-topic).
-NotificationService automatically routes the event to the correct handler.
+```
 
+## Publish events
 
-Extensibility
-Add new notification channels by creating a subclass of NotificationEventMessage.
-Implement a NotificationHandler service for the new type.
-The strategy pattern automatically routes messages based on NotificationType.
-Polymorphic DTOs (@JsonTypeInfo, @JsonSubTypes) ensure clean JSON mapping.
+Send notification JSON payloads to the configured Kafka topic.
 
-Tech Stack
-Java 21
-Spring Boot 4.x
-Spring Kafka
-Spring Mail / JavaMailSender
-Jackson for JSON serialization/deserialization
-Gradle build system
-Kafka (local or cluster)
+The Notification Service automatically routes events to the correct delivery handler.
+
+---
+
+# 🔮 Future Enhancements
+
+* Retry policies with exponential backoff
+* Notification audit persistence
+* Slack/WhatsApp integrations
+* Kubernetes deployment manifests
+* Observability with Prometheus & Grafana
+* OpenTelemetry tracing
+* Authentication & rate limiting
+* Template-driven notifications
+
+---
+
+# 👨‍💻 Purpose of This Project
+
+This project was built as part of my professional re-entry engineering portfolio to demonstrate modern Java backend development practices, event-driven microservices, asynchronous processing patterns, and scalable distributed system design.
